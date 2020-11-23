@@ -1,4 +1,5 @@
 #include <isa.h>
+#include <memory/vaddr.h>
 #include "expr.h"
 #include "watchpoint.h"
 
@@ -27,17 +28,86 @@ static char* rl_gets() {
   return line_read;
 }
 
+static int cmd_help(char *args);
+
 static int cmd_c(char *args) {
   cpu_exec(-1);
   return 0;
 }
 
-
 static int cmd_q(char *args) {
   return -1;
 }
 
-static int cmd_help(char *args);
+static int cmd_si(char *args) {
+  if (args == NULL) {
+    cpu_exec(1);
+    return 0;
+  }
+
+  uint64_t count = 0;
+  if (sscanf(args, "%lu", &count) != 1) {
+    printf("Usage: si [N]\n");
+  }
+  cpu_exec(count);
+  return 0;
+}
+
+static int cmd_info(char *args) {
+  if (args == NULL) {
+    printf("Usage: info r or info w\n");
+    return 0;
+  }
+  if (*args == 'r') {
+    isa_reg_display();
+  } else if (*args == 'w') {
+
+  } else {
+    printf("Usage: info r or info w\n");
+  }
+  return 0;
+}
+
+static int cmd_p(char *args) {
+  if (args == NULL) {
+    printf("Usage: p expr\n");
+    return 0;
+  }
+  bool success = false;
+  word_t res = expr(args, &success);
+  if (success) {
+    printf("result: %u\n", res);
+  }
+  return 0;
+}
+
+static int cmd_x(char *args) {
+  uint32_t num = 0;
+  vaddr_t addr = 0;
+  if (sscanf(args, "%u %x", &num, &addr) != 2) {
+    printf("Usage: x N expr\n");
+  }
+
+  for (uint32_t i = 0; i < num; i++) {
+    if (i % 4 == 0) {
+      printf("\n(");
+      printf(FMT_WORD, addr + i * (uint32_t) sizeof(word_t));
+      printf(")");
+    }
+    printf("   ");
+    printf(FMT_WORD, vaddr_read(addr + i * sizeof(word_t), sizeof(word_t)));
+  }
+  printf("\n");
+  return 0;
+}
+
+static int cmd_w(char *args) {
+  return 0;
+}
+
+static int cmd_d(char *args) {
+  return 0;
+}
 
 static struct {
   char *name;
@@ -49,7 +119,12 @@ static struct {
   { "q", "Exit NEMU", cmd_q },
 
   /* TODO: Add more commands */
-
+  { "si", "Single step execution", cmd_si },
+  { "info", "Display informations about register status or watch point", cmd_info },
+  { "p", "Expression evaluation", cmd_p },
+  { "x", "Scan memory", cmd_x },
+  { "w", "Set the watch point", cmd_w },
+  { "d", "Remove the watch point", cmd_d },
 };
 
 #define NR_CMD (sizeof(cmd_table) / sizeof(cmd_table[0]))
