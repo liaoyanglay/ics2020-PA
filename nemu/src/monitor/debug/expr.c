@@ -1,4 +1,5 @@
 #include <isa.h>
+#include <memory/vaddr.h>
 #include "expr.h"
 
 /* We use the POSIX regex functions to process regular expressions.
@@ -11,7 +12,8 @@ enum {
   TK_NOTYPE = 256, TK_EQ,
 
   /* TODO: Add more token types */
-  TK_DEC_INT, TK_HEX_INT, TK_REG
+  TK_DEC_INT, TK_HEX_INT, TK_REG, TK_DEREF, TK_NEGATIVE,
+  TK_NE, TK_AND,
 };
 
 static struct rule {
@@ -26,12 +28,15 @@ static struct rule {
   {" +", TK_NOTYPE},      // spaces
   {"\\(", '('},
   {"\\)", ')'},
-  {"\\*", '*'},           // multiply
+  {"\\*", '*'},           // multiply or deref
   {"/", '/'},             // divide
   {"\\+", '+'},           // plus
-  {"\\-", '-'},           // minus
+  {"\\-", '-'},           // minus or neg
   {"==", TK_EQ},          // equal
-  {"0x[a-fA-F0-9]+", TK_HEX_INT},  // hex
+  {"!=", TK_NE},          // not equal
+  {"&&", TK_AND},         // and
+  {"\\$[a-zA-Z0-9]+", TK_REG},    // reg
+  {"0[xX][a-fA-F0-9]+", TK_HEX_INT}, // hex
   {"[0-9]+", TK_DEC_INT}, // decimal
 };
 
@@ -61,12 +66,12 @@ typedef struct token {
   char str[32];
 } Token;
 
-#define TK_SIZE 64
+#define TK_SIZE 256
 
 static Token tokens[TK_SIZE] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
 
-static bool make_token(char *e) {
+static bool make_token(const char *e) {
   int position = 0;
   int i;
   regmatch_t pmatch;
@@ -78,7 +83,7 @@ static bool make_token(char *e) {
     /* Try all rules one by one. */
     for (i = 0; i < NR_REGEX; i ++) {
       if (regexec(&re[i], e + position, 1, &pmatch, 0) == 0 && pmatch.rm_so == 0) {
-        char *substr_start = e + position;
+        const char *substr_start = e + position;
         int substr_len = pmatch.rm_eo;
 
         // Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
@@ -99,9 +104,12 @@ static bool make_token(char *e) {
               printf("expression too long\n");
               return false;
             }
+            if (substr_len >= sizeof(tokens[0].str)) {
+              printf("token too long: %s\n", substr_start);
+              return false;
+            }
             tokens[nr_token].type = rules[i].token_type;
-            size_t length = substr_len < sizeof(tokens[0].str) - 1 ? substr_len : sizeof(tokens[0].str) - 1;
-            strncpy(tokens[nr_token].str, substr_start, length);
+            strncpy(tokens[nr_token].str, substr_start, substr_len);
             nr_token++;
             break;
         }
@@ -149,7 +157,11 @@ bool check_parentheses(int p, int q, bool *is_match) {
 }
 
 int find_main_op(int p, int q) {
-  int op = -1;
+  int op_deref = -1;
+  int op_mul = -1;
+  int op_plus = -1;
+  int op_eq = -1;
+  int op_and = -1;
   int left = 0;
   for (int i = p; i <= q; i++) {
     if (tokens[i].type == '(') {
@@ -161,21 +173,38 @@ int find_main_op(int p, int q) {
     if (left > 0) continue;
 
     switch (tokens[i].type) {
+      case TK_DEREF:
+      case TK_NEGATIVE:
+        if (op_deref < 0) op_deref = i;
+        break;
       case '+':
       case '-':
-        op = i;
+        op_plus = i;
         break;
       case '*':
       case '/':
-        if (op < 0 || (tokens[op].type != '+' && tokens[op].type != '-')) {
-          op = i;
-        }
+        op_mul = i;
+        break;
+      case TK_EQ:
+      case TK_NE:
+        op_eq = i;
+        break;
+      case TK_AND:
+        op_and = i;
         break;
       default:
         break;
     }
   }
-  return op;
+
+  // Sort by precedence level from low to high.
+  if (op_and >= 0) return op_and;
+  if (op_eq >= 0) return op_eq;
+  if (op_plus >= 0) return op_plus;
+  if (op_mul >= 0) return op_mul;
+  if (op_deref >= 0) return op_deref;
+
+  return -1;
 }
 
 bool eval(int p, int q, word_t *res) {
@@ -188,12 +217,20 @@ bool eval(int p, int q, word_t *res) {
      * For now this token should be a number.
      * Return the value of the number.
      */
+    bool success = false;
     switch (tokens[p].type) {
       case TK_DEC_INT:
         *res = strtol(tokens[p].str, NULL, 10);
         break;
       case TK_HEX_INT:
         *res = strtol(tokens[p].str, NULL, 16);
+        break;
+      case TK_REG:
+        *res = isa_reg_str2val(tokens[p].str + 1, &success);
+        if (!success) {
+          printf("Unknown reg name: %s\n", tokens[p].str);
+          return false;
+        }
         break;
       default:
         printf("Bad expression\n");
@@ -219,7 +256,9 @@ bool eval(int p, int q, word_t *res) {
   }
 
   word_t val1 = 0;
-  if (!eval(p, op - 1, &val1)) return false;
+  if (tokens[op].type != TK_DEREF && tokens[op].type != TK_NEGATIVE) {
+    if (!eval(p, op - 1, &val1)) return false;
+  }
   word_t val2 = 0;
   if (!eval(op + 1, q, &val2)) return false;
 
@@ -240,21 +279,56 @@ bool eval(int p, int q, word_t *res) {
       }
       *res = val1 / val2;
       break;
+    case TK_DEREF:
+      if (val2 < 0x80000000) {
+        printf("Deref illegal address: 0x%08x\n", val2);
+        return false;
+      }
+      *res = vaddr_read(val2, sizeof(word_t));
+      break;
+    case TK_NEGATIVE:
+      *res = -val2;
+      break;
+    case TK_EQ:
+      *res = val1 == val2;
+      break;
+    case TK_NE:
+      *res = val1 != val2;
+      break;
+    case TK_AND:
+      *res = val1 && val2;
+      break;
     default:
-      printf("Bad expression\n");
+      printf("Bad expressionr\n");
       return false;
   }
 
   return true;
 }
 
-word_t expr(char *e, bool *success) {
+word_t expr(const char *e, bool *success) {
+  assert(e != NULL);
   if (!make_token(e)) {
     *success = false;
     return 0;
   }
 
   /* TODO: Insert codes to evaluate the expression. */
+
+  for (int i = 0; i < nr_token; i ++) {
+    if (tokens[i].type == '*' && (i == 0 || (tokens[i - 1].type != TK_DEC_INT &&
+                                             tokens[i - 1].type != TK_HEX_INT &&
+                                             tokens[i - 1].type != TK_REG &&
+                                             tokens[i - 1].type != ')'))) {
+      tokens[i].type = TK_DEREF;
+    }
+    if (tokens[i].type == '-' && (i == 0 || (tokens[i - 1].type != TK_DEC_INT &&
+                                             tokens[i - 1].type != TK_HEX_INT &&
+                                             tokens[i - 1].type != TK_REG &&
+                                             tokens[i - 1].type != ')'))) {
+      tokens[i].type = TK_NEGATIVE;
+    }
+  }
 
   word_t res = 0;
   if (!eval(0, nr_token - 1, &res)) {

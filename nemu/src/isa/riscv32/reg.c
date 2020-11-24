@@ -17,5 +17,20 @@ void isa_reg_display() {
 }
 
 word_t isa_reg_str2val(const char *s, bool *success) {
+  if (strcmp("0", s) == 0) {
+    *success = true;
+    return reg_l(0);
+  }
+  if (strcmp("pc", s) == 0) {
+    *success = true;
+    return cpu.pc;
+  }
+  for (int i = 1; i < NR_REG; i++) {
+    if (strcmp(regsl[i], s) == 0) {
+      *success = true;
+      return reg_l(i);
+    }
+  }
+  *success = false;
   return 0;
 }

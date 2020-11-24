@@ -1,5 +1,6 @@
 #include <isa.h>
 #include <memory/vaddr.h>
+#include <monitor/monitor.h>
 #include "expr.h"
 #include "watchpoint.h"
 
@@ -36,6 +37,7 @@ static int cmd_c(char *args) {
 }
 
 static int cmd_q(char *args) {
+  nemu_state.state = NEMU_QUIT;
   return -1;
 }
 
@@ -61,7 +63,7 @@ static int cmd_info(char *args) {
   if (*args == 'r') {
     isa_reg_display();
   } else if (*args == 'w') {
-
+    display_wp();
   } else {
     printf("Usage: info r or info w\n");
   }
@@ -76,19 +78,32 @@ static int cmd_p(char *args) {
   bool success = false;
   word_t res = expr(args, &success);
   if (success) {
-    printf("result: %u\n", res);
+    printf("result: %u  0x%x\n", res, res);
   }
   return 0;
 }
 
 static int cmd_x(char *args) {
-  uint32_t num = 0;
-  vaddr_t addr = 0;
-  if (sscanf(args, "%u %x", &num, &addr) != 2) {
+  if (args == NULL) {
     printf("Usage: x N expr\n");
+    return 0;
   }
 
-  for (uint32_t i = 0; i < num; i++) {
+  uint32_t n = 0;
+  bool success = false;
+  char *args_end = args + strlen(args);
+  char *num = strtok(args, " ");
+  char *e = num + strlen(num) + 1;
+  if (e >= args_end) e = NULL;
+  if (e == NULL || sscanf(num, "%u", &n) != 1) {
+    printf("Usage: x N expr\n");
+    return 0;
+  }
+
+  vaddr_t addr = expr(e, &success);
+  if (!success) return 0;
+
+  for (uint32_t i = 0; i < n; i++) {
     if (i % 4 == 0) {
       printf("\n(");
       printf(FMT_WORD, addr + i * (uint32_t) sizeof(word_t));
@@ -102,10 +117,19 @@ static int cmd_x(char *args) {
 }
 
 static int cmd_w(char *args) {
+  WP *wp = new_wp(args);
+  if (wp != NULL) {
+    printf("watchpoint %d: %s\n", wp->NO, wp->expr);
+  }
   return 0;
 }
 
 static int cmd_d(char *args) {
+  int num = 0;
+  if (sscanf(args, "%d", &num) != 1) {
+    printf("Usage: d N\n");
+  }
+  free_wp(num);
   return 0;
 }
 

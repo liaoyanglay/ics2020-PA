@@ -1,6 +1,7 @@
 #!/bin/bash
 
 ISA=${1#*ISA=}
+ISA=${ISA:-"riscv32"}
 CPUTEST_PATH=$NEMU_HOME/../am-kernels/tests/cpu-tests
 
 echo "compiling NEMU..."
