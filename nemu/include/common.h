@@ -18,6 +18,7 @@
 #include <assert.h>
 #include <string.h>
 
+#undef bool
 typedef uint8_t bool;
 
 typedef uint32_t word_t;
