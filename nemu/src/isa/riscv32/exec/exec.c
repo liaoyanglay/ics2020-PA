@@ -37,49 +37,49 @@ static inline def_EHelper(sri) {
 static inline def_EHelper(op_imm) {
   switch (s->isa.instr.i.funct3) {
     EX (0, addi)
-    // EX (1, slli)
-    // EX (2, slti)
-    // EX (3, sltiu)
-    // EX (4, xori)
-    // EX (5, sri)
-    // EX (6, ori)
-    // EX (7, andi)
+    EX (1, slli)
+    EX (2, slti)
+    EX (3, sltiu)
+    EX (4, xori)
+    EX (5, sri)
+    EX (6, ori)
+    EX (7, andi)
     default: exec_inv(s);
   }
 }
 
 static inline def_EHelper(op) {
   switch ((s->isa.instr.r.funct7 << 3) | s->isa.instr.r.funct3) {
-    // EX ((0b0000000 << 3) | 0, add)
-    // EX ((0b0100000 << 3) | 0, sub)
-    // EX ((0b0000000 << 3) | 1, sll)
-    // EX ((0b0000000 << 3) | 2, slt)
-    // EX ((0b0000000 << 3) | 3, sltu)
-    // EX ((0b0000000 << 3) | 4, xor)
-    // EX ((0b0000000 << 3) | 5, srl)
-    // EX ((0b0100000 << 3) | 5, sra)
-    // EX ((0b0000000 << 3) | 6, or)
-    // EX ((0b0000000 << 3) | 7, and)
-    // EX ((0b0000001 << 3) | 0, mul)
-    // EX ((0b0000001 << 3) | 1, mulh)
-    // EX ((0b0000001 << 3) | 2, mulhsu)
-    // EX ((0b0000001 << 3) | 3, mulhu)
-    // EX ((0b0000001 << 3) | 4, div)
-    // EX ((0b0000001 << 3) | 5, divu)
-    // EX ((0b0000001 << 3) | 6, rem)
-    // EX ((0b0000001 << 3) | 7, remu)
+    EX ((0b0000000 << 3) | 0, add)
+    EX ((0b0100000 << 3) | 0, sub)
+    EX ((0b0000000 << 3) | 1, sll)
+    EX ((0b0000000 << 3) | 2, slt)
+    EX ((0b0000000 << 3) | 3, sltu)
+    EX ((0b0000000 << 3) | 4, xor)
+    EX ((0b0000000 << 3) | 5, srl)
+    EX ((0b0100000 << 3) | 5, sra)
+    EX ((0b0000000 << 3) | 6, or)
+    EX ((0b0000000 << 3) | 7, and)
+    EX ((0b0000001 << 3) | 0, mul)
+    EX ((0b0000001 << 3) | 1, mulh)
+    EX ((0b0000001 << 3) | 2, mulhsu)
+    EX ((0b0000001 << 3) | 3, mulhu)
+    EX ((0b0000001 << 3) | 4, div)
+    EX ((0b0000001 << 3) | 5, divu)
+    EX ((0b0000001 << 3) | 6, rem)
+    EX ((0b0000001 << 3) | 7, remu)
     default: exec_inv(s);
   }
 }
 
 static inline def_EHelper(branch) {
   switch (s->isa.instr.b.funct3) {
-    // EX (0, beq)
-    // EX (1, bne)
-    // EX (4, blt)
-    // EX (5, bge)
-    // EX (6, bltu)
-    // EX (7, bgeu)
+    EX (0, beq)
+    EX (1, bne)
+    EX (4, blt)
+    EX (5, bge)
+    EX (6, bltu)
+    EX (7, bgeu)
     default: exec_inv(s);
   }
 }

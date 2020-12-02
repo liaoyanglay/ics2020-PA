@@ -19,6 +19,7 @@
 #define c_imul_lo(a, b) ((sword_t)(a) * (sword_t)(b))
 #define c_mul_hi(a, b) (((uint64_t)(a) * (uint64_t)(b)) >> 32)
 #define c_imul_hi(a, b) (((int64_t)(sword_t)(a) * (int64_t)(sword_t)(b)) >> 32)
+#define c_mulsu_hi(a, b) (((int64_t)(sword_t)(a) * (int64_t)(uint64_t)(b)) >> 32)
 
 #define c_div_q(a, b) ((a) / (b))
 #define c_div_r(a, b)  ((a) % (b))
