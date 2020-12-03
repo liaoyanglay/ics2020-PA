@@ -212,8 +212,23 @@ void vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list
   }
 }
 
+static void print_putch(int ch, int *cnt) {
+  (*cnt)++;
+  putch(ch);
+}
+
+int vprintf(const char *fmt, va_list ap) {
+  int cnt = 0;
+  vprintfmt((void*)print_putch, &cnt, fmt, ap);
+  return cnt;
+}
+
 int printf(const char *fmt, ...) {
-  return 0;
+  va_list ap;
+  va_start(ap, fmt);
+  int cnt = vprintf(fmt, ap);
+  va_end(ap);
+  return cnt;
 }
 
 struct sprintbuf {
@@ -222,7 +237,7 @@ struct sprintbuf {
   int cnt;
 };
 
-static void sprintputch(int ch, struct sprintbuf *b) {
+static void sprint_putch(int ch, struct sprintbuf *b) {
   b->cnt++;
   if (b->ebuf == NULL || b->buf < b->ebuf)
     *b->buf++ = ch;
@@ -235,7 +250,7 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
     return -1;
 
   // print the string to the buffer
-  vprintfmt((void*)sprintputch, &b, fmt, ap);
+  vprintfmt((void*)sprint_putch, &b, fmt, ap);
 
   // null terminate the buffer
   *b.buf = '\0';
@@ -266,7 +281,7 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
     return -1;
 
   // print the string to the buffer
-  vprintfmt((void*)sprintputch, &b, fmt, ap);
+  vprintfmt((void*)sprint_putch, &b, fmt, ap);
 
   // null terminate the buffer
   *b.buf = '\0';
