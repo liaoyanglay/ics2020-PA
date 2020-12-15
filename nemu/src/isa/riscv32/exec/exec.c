@@ -86,8 +86,21 @@ static inline def_EHelper(branch) {
 
 static inline def_EHelper(system) {
   switch (s->isa.instr.i.simm11_0) {
-    // EX (0, ecall)
-    // EX (1, ebreak)
+    EX (0x000, ecall)
+    EX (0x102, sret)
+    default: exec_inv(s);
+  }
+}
+
+static inline def_EHelper(system_and_csr) {
+  switch (s->isa.instr.i.funct3) {
+    EX (0, system)
+    EX (1, csrrw)
+    EX (2, csrrs)
+    EX (3, csrrc)
+    // EX (5, csrrwi)
+    // EX (6, csrrsi)
+    // EX (7, csrrci)
     default: exec_inv(s);
   }
 }
@@ -105,7 +118,7 @@ static inline void fetch_decode_exec(DecodeExecState *s) {
     IDEX (0b11000, B, branch)
     IDEX (0b11001, I, jalr)
     IDEX (0b11011, J, jal)
-    IDEX (0b11100, I, system)
+    IDEX (0b11100, I, system_and_csr)
     EX   (0b11010, nemu_trap)
     default: exec_inv(s);
   }

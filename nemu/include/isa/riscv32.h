@@ -15,6 +15,11 @@ typedef struct {
   } gpr[32];
 
   vaddr_t pc;
+
+  rtlreg_t sepc;
+  rtlreg_t sstatus;
+  rtlreg_t scause;
+  rtlreg_t stvec;
 } riscv32_CPU_state;
 
 // decode
