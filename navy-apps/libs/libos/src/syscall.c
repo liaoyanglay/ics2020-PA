@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <setjmp.h>
@@ -56,42 +57,45 @@ void _exit(int status) {
 }
 
 int _open(const char *path, int flags, mode_t mode) {
-  _exit(SYS_open);
-  return 0;
+  return _syscall_(SYS_open, (intptr_t) path, flags, mode);
 }
 
 int _write(int fd, void *buf, size_t count) {
-  _exit(SYS_write);
-  return 0;
+  return _syscall_(SYS_write, fd, (intptr_t) buf, count);
 }
 
+extern char _end;
+
 void *_sbrk(intptr_t increment) {
-  return (void *)-1;
+  static void *pbrk = &_end;
+  void *addr = pbrk;
+  pbrk += increment;
+  int ret = _syscall_(SYS_brk, (intptr_t) pbrk, 0, 0);
+  if (ret != 0) {
+    pbrk = addr;
+    return (void *)-1;
+  }
+  return addr;
 }
 
 int _read(int fd, void *buf, size_t count) {
-  _exit(SYS_read);
-  return 0;
+  return _syscall_(SYS_read, fd, (intptr_t) buf, count);
 }
 
 int _close(int fd) {
-  _exit(SYS_close);
-  return 0;
+  return _syscall_(SYS_close, fd, 0, 0);
 }
 
 off_t _lseek(int fd, off_t offset, int whence) {
-  _exit(SYS_lseek);
-  return 0;
+  return _syscall_(SYS_lseek, fd, offset, whence);
 }
 
 int _gettimeofday(struct timeval *tv, struct timezone *tz) {
-  _exit(SYS_gettimeofday);
-  return 0;
+  return _syscall_(SYS_gettimeofday, (intptr_t) tv, (intptr_t) tz, 0);
 }
 
 int _execve(const char *fname, char * const argv[], char *const envp[]) {
-  _exit(SYS_execve);
-  return 0;
+  return _syscall_(SYS_execve, (intptr_t) fname, (intptr_t) argv, (intptr_t) envp);
 }
 
 // Syscalls below are not used in Nanos-lite.

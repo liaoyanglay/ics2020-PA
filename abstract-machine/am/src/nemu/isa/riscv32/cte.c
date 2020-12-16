@@ -2,13 +2,19 @@
 #include <riscv32.h>
 #include <klib.h>
 
+#define ECALL_NO 9
+
 static Context* (*user_handler)(Event, Context*) = NULL;
 
 Context* __am_irq_handle(Context *c) {
   if (user_handler) {
     Event ev = {0};
     switch (c->cause) {
-      case -1: ev.event = EVENT_YIELD; c->epc += 4; break;
+      case ECALL_NO:
+        if (c->GPR1 == -1) ev.event = EVENT_YIELD;
+        else ev.event = EVENT_SYSCALL;
+        c->epc += 4;
+        break;
       default: ev.event = EVENT_ERROR; break;
     }
 

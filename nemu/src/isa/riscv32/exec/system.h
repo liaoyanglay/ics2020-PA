@@ -1,4 +1,4 @@
-#define INDEX_A7 17
+#define ECALL_NO 9
 
 static inline rtlreg_t *csr_l(uint32_t csr) {
   csr = csr & 0xfff;
@@ -14,11 +14,14 @@ static inline rtlreg_t *csr_l(uint32_t csr) {
 static inline def_EHelper(ecall) {
   assert(s->isa.instr.i.simm11_0 == 0);
   void raise_intr(DecodeExecState *, uint32_t, vaddr_t);
-  raise_intr(s, reg_l(INDEX_A7), cpu.pc);
+  rtl_li(s, &cpu.sstatus, 0x000c0100);
+  raise_intr(s, ECALL_NO, cpu.pc);
+  print_asm("ecall");
 }
 
 static inline def_EHelper(sret) {
   rtl_jr(s, &cpu.sepc);
+  print_asm("sret");
 }
 
 static inline def_EHelper(csrrw) {
@@ -28,6 +31,7 @@ static inline def_EHelper(csrrw) {
     rtl_mv(s, ddest, csr);
   }
   rtl_mv(s, csr, s0);
+  print_asm_template3(csrrw);
 }
 
 static inline def_EHelper(csrrs) {
@@ -42,6 +46,7 @@ static inline def_EHelper(csrrs) {
     }
     rtl_mv(s, csr, s1);
   }
+  print_asm_template3(csrrs);
 }
 
 static inline def_EHelper(csrrc) {
@@ -54,6 +59,7 @@ static inline def_EHelper(csrrc) {
     *s1 = *s1 & (mask >> *s0);
     rtl_mv(s, csr, s1);
   }
+  print_asm_template3(csrrc);
 }
 
 static inline def_EHelper(csrrwi) {
@@ -62,6 +68,7 @@ static inline def_EHelper(csrrwi) {
     rtl_mv(s, ddest, csr);
   }
   rtl_li(s, csr, id_src1->imm);
+  print_asm_template3(csrrwi);
 }
 
 static inline def_EHelper(csrrsi) {
@@ -73,6 +80,7 @@ static inline def_EHelper(csrrsi) {
     *s1 = *s1 | (mask >> (id_src1->imm - 1));
     rtl_mv(s, csr, s1);
   }
+  print_asm_template3(csrrsi);
 }
 
 static inline def_EHelper(csrrci) {
@@ -84,4 +92,5 @@ static inline def_EHelper(csrrci) {
     *s1 = *s1 & (mask >> id_src1->imm);
     rtl_mv(s, csr, s1);
   }
+  print_asm_template3(csrrci);
 }
