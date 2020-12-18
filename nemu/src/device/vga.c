@@ -48,8 +48,9 @@ void vga_update_screen() {
 
 static void vgactl_io_handler(uint32_t offset, int len, bool is_write) {
   assert(offset == 0 || offset == 4);
-  if (is_write) {
-    assert(offset == 4);
+  if (offset == 0) {
+    assert(!is_write);
+    vgactl_port_base[0] = ((SCREEN_W) << 16) | (SCREEN_H);
   }
 }
 
@@ -70,7 +71,6 @@ void init_vga() {
 #endif
 
   vgactl_port_base = (void *)new_space(8);
-  vgactl_port_base[0] = ((SCREEN_W) << 16) | (SCREEN_H);
   add_pio_map("screen", VGACTL_PORT, (void *)vgactl_port_base, 8, vgactl_io_handler);
   add_mmio_map("screen", VGACTL_MMIO, (void *)vgactl_port_base, 8, vgactl_io_handler);
 
