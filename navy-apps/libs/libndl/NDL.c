@@ -81,10 +81,10 @@ int NDL_Init(uint32_t flags) {
   if (getenv("NWM_APP")) {
     evtdev = 3;
   } else {
-    evtdev = open("/dev/events", 0);
+    evtdev = open("/dev/events", O_RDONLY);
   }
 
-  int disproc = open("/proc/dispinfo", 0);
+  int disproc = open("/proc/dispinfo", O_RDONLY);
   char buf[64];
   int off = 0;
   read(disproc, buf, sizeof(buf));
@@ -95,7 +95,7 @@ int NDL_Init(uint32_t flags) {
   assert(strncmp(buf + off, "HEIGHT", 6) == 0);
   sscanf(buf + off + 6, "%*[: \t] %d", &screen_h);
 
-  fbdev = open("/dev/fb", 0);
+  fbdev = open("/dev/fb", O_RDWR);
 
   return 0;
 }
