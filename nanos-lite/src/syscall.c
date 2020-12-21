@@ -1,5 +1,6 @@
 #include <common.h>
 #include <fs.h>
+#include <proc.h>
 #include <sys/time.h>
 #include "syscall.h"
 
@@ -24,7 +25,7 @@ void do_syscall(Context *c) {
   a[3] = c->GPR4;
 
   switch (a[0]) {
-    case SYS_exit: halt(a[1]); panic("Should not reach here");
+    case SYS_exit: sys_execve("/bin/menu", NULL, NULL); break;
     case SYS_yield: yield(); break;
     case SYS_brk: c->GPRx = 0; break;
     case SYS_write: c->GPRx = fs_write(a[1], (void *) a[2], a[3]); break;
@@ -33,7 +34,7 @@ void do_syscall(Context *c) {
     case SYS_close: c->GPRx = fs_close(a[1]); break;
     case SYS_lseek: c->GPRx = fs_lseek(a[1], a[2], a[3]); break;
     case SYS_gettimeofday: c->GPRx = sys_gettimeofday((struct timeval *)a[1], (struct timezone *)a[2]); break;
-    case SYS_execve:
+    case SYS_execve: c->GPRx = sys_execve((const char *) a[1], (char **) a[2], (char **) a[3]); break;
     default: panic("Unhandled syscall ID = %d", a[0]);
   }
 }

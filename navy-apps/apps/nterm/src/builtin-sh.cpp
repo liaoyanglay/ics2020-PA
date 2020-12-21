@@ -23,11 +23,19 @@ static void sh_prompt() {
 }
 
 static void sh_handle_cmd(const char *cmd) {
+  int i = 0;
+  char file[64];
+  while (*cmd != ' ' && *cmd != '\n' && *cmd != '\t') {
+    file[i++] = *cmd++;
+  }
+  file[i] = '\0';
+  execvp(file, NULL);
 }
 
 void builtin_sh_run() {
   sh_banner();
   sh_prompt();
+  setenv("PATH", "/bin", 0);
 
   while (1) {
     SDL_Event ev;

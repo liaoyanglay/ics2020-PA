@@ -25,8 +25,13 @@ void init_proc() {
   Log("Initializing processes...");
 
   // load program here
-  void naive_uload(PCB *pcb, const char *filename);
-  naive_uload(NULL, "/bin/pal");
+  naive_uload(NULL, "/bin/menu");
+}
+
+int sys_execve(const char *fname, char *const argv[], char *const envp[]) {
+  Log("Execute: %s", fname);
+  naive_uload(NULL, fname);
+  return -1;
 }
 
 Context* schedule(Context *prev) {

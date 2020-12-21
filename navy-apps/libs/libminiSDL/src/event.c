@@ -44,8 +44,10 @@ int SDL_WaitEvent(SDL_Event *ev) {
     /* empty */;
   if (buf[0] == 'k') {
     ev->type = buf[1] == 'd' ? SDL_KEYDOWN : SDL_KEYUP;
-    for (int i = 0; i < sizeof(keyname) / sizeof(char *); i++) {
-      if (strncmp(&buf[3], keyname[i], strlen(keyname[i])) == 0) {
+    int len = strlen(buf);
+    buf[len - 1] = '\0';
+    for (int i = 0; i < KEY_NUMBER; i++) {
+      if (strcmp(&buf[3], keyname[i]) == 0) {
         ev->key.keysym.sym = i;
         key_state[i] = ev->type == SDL_KEYDOWN;
         return 1;
