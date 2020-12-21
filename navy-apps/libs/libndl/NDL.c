@@ -81,7 +81,8 @@ int NDL_Init(uint32_t flags) {
   if (getenv("NWM_APP")) {
     evtdev = 3;
   } else {
-    evtdev = open("/dev/events", O_RDONLY);
+    if (evtdev == -1) evtdev = open("/dev/events", O_RDONLY);
+    if (fbdev == -1) fbdev = open("/dev/fb", O_RDWR);
   }
 
   int disproc = open("/proc/dispinfo", O_RDONLY);
@@ -94,8 +95,6 @@ int NDL_Init(uint32_t flags) {
   sscanf(buf + 5, "%*[: \t] %d", &screen_w);
   assert(strncmp(buf + off, "HEIGHT", 6) == 0);
   sscanf(buf + off + 6, "%*[: \t] %d", &screen_h);
-
-  fbdev = open("/dev/fb", O_RDWR);
 
   return 0;
 }
