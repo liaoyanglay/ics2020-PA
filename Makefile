@@ -9,8 +9,17 @@ clean:
 	-$(MAKE) -s -C nanos-lite clean
 	-$(MAKE) -s -C navy-apps clean
 
-submit: clean
-	git gc
-	STUID=$(STUID) STUNAME=$(STUNAME) bash -c "$$(curl -s http://jyywiki.cn/static/submit.sh)"
+submit:
+	# git gc
+	STUID=$(STUID) STUNAME=$(STUNAME) bash -c "$$(curl -s https://course.cunok.cn/pa/scripts/submit.sh)"
 
-.PHONY: default clean submit
+info: 
+	STUID=$(STUID) STUNAME=$(STUNAME) bash -c "$$(curl -s https://course.cunok.cn/pa/scripts/info.sh)"
+
+setup: 
+	STUID=$(STUID) STUNAME=$(STUNAME) bash -c "$$(curl -s https://course.cunok.cn/pa/scripts/setup.sh)"
+
+password: 
+	STUID=$(STUID) STUNAME=$(STUNAME) bash -c "$$(curl -s https://course.cunok.cn/pa/scripts/password.sh)"
+
+.PHONY: default clean submit info setup password

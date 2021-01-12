@@ -9,5 +9,7 @@
 !README.md
 !.gitignore
 !init.sh
+!*.docx
+!*.pdf
 /fceux-am
 /am-kernels
